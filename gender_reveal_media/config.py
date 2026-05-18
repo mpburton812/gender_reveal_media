@@ -12,6 +12,22 @@ def _env(name: str, default: str | None = None) -> str | None:
     return v
 
 
+def resolve_gemini_model(value: str | None) -> str:
+    """
+    Default to a currently provisioned Flash model. Older configs often pin
+    gemini-2.0-flash, which returns 404 for new API projects.
+    """
+    default = "gemini-2.5-flash"
+    raw = (value or "").strip()
+    if not raw:
+        return default
+    name = raw.removeprefix("models/").strip()
+    tail = name.split("/")[-1]
+    if tail == "gemini-2.0-flash" or name == "gemini-2.0-flash":
+        return default
+    return name
+
+
 def _turso_https_to_libsql(url: str) -> str:
     """
     Turso often exposes an https:// database URL. libsql-client uses a different
@@ -92,7 +108,7 @@ def load_settings(*, require_gemini: bool = True) -> Settings:
         turso_database_url=normalize_turso_database_url(url),
         turso_auth_token=_env("TURSO_AUTH_TOKEN"),
         gemini_api_key=gemini,
-        gemini_model=_env("GEMINI_MODEL", "gemini-2.5-flash") or "gemini-2.5-flash",
+        gemini_model=resolve_gemini_model(_env("GEMINI_MODEL")),
         ingest_max_episodes=max(1, min(max_eps, 50)),
         gemini_max_transcript_chars=max(10_000, max_chars),
         gemini_chunk_chars=max(5000, chunk),
