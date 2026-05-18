@@ -31,4 +31,6 @@ jobs:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           INGEST_MAX_EPISODES: "5"
+          # Ensure ingest uses Hrana (libsql:// → wss), not the HTTP client path.
+          TURSO_PREFER_HTTPS: ""
         run: python -m gender_reveal_media.cli ingest --trigger github_actions

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 
 def _env(name: str, default: str | None = None) -> str | None:
@@ -9,6 +10,24 @@ def _env(name: str, default: str | None = None) -> str | None:
     if v is None or v.strip() == "":
         return default
     return v
+
+
+def _turso_https_to_libsql(url: str) -> str:
+    """
+    Turso often exposes an https:// database URL. libsql-client uses a different
+    code path for https:// (HTTP /v1/execute) than for libsql:// (Hrana over wss).
+    The HTTP responses can trigger KeyError: 'result' in older / mismatched clients.
+    """
+    u = url.strip()
+    parsed = urlparse(u)
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme != "https" or "turso.io" not in host:
+        return u
+    netloc = parsed.netloc
+    path = parsed.path or ""
+    if path in ("", "/"):
+        return f"libsql://{netloc}"
+    return f"libsql://{netloc}{path}"
 
 
 def normalize_turso_database_url(url: str) -> str:
@@ -28,7 +47,7 @@ def normalize_turso_database_url(url: str) -> str:
         return url.strip()
     u = url.strip()
     if (_env("GITHUB_ACTIONS") or "").strip() == "true":
-        return u
+        return _turso_https_to_libsql(u)
     prefer = (_env("TURSO_PREFER_HTTPS") or "").strip().lower() in ("1", "true", "yes")
     if not prefer:
         return u
