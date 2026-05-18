@@ -11,6 +11,23 @@ def _env(name: str, default: str | None = None) -> str | None:
     return v
 
 
+def normalize_turso_database_url(url: str) -> str:
+    """
+    Turso dashboard URLs often use libsql://, which the client maps to wss://.
+    Some hosts (e.g. Streamlit Cloud) fail WebSocket upgrades; HTTPS works reliably.
+    Set TURSO_USE_WEBSOCKET=1 to keep libsql/wss as provided.
+    """
+    flag = (_env("TURSO_USE_WEBSOCKET") or "").strip().lower()
+    if flag in ("1", "true", "yes"):
+        return url.strip()
+    u = url.strip()
+    if u.startswith("libsql://"):
+        return "https://" + u.removeprefix("libsql://")
+    if u.startswith("wss://"):
+        return "https://" + u.removeprefix("wss://")
+    return u
+
+
 @dataclass(frozen=True)
 class Settings:
     turso_database_url: str
@@ -42,7 +59,7 @@ def load_settings(*, require_gemini: bool = True) -> Settings:
     chunk = int(_env("GEMINI_CHUNK_CHARS", "90000") or "90000")
     overlap = int(_env("GEMINI_CHUNK_OVERLAP", "2000") or "2000")
     return Settings(
-        turso_database_url=url,
+        turso_database_url=normalize_turso_database_url(url),
         turso_auth_token=_env("TURSO_AUTH_TOKEN"),
         gemini_api_key=gemini,
         gemini_model=_env("GEMINI_MODEL", "gemini-2.0-flash") or "gemini-2.0-flash",
