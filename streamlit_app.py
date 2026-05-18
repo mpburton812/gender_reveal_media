@@ -174,9 +174,9 @@ def main() -> None:
     patreon = os.environ.get("PATREON_URL", "").strip()
     merch = os.environ.get("MERCH_URL", "").strip()
     if patreon:
-        st.sidebar.link_button("Patreon", patreon, use_container_width=True)
+        st.sidebar.link_button("Patreon", patreon, width="stretch")
     if merch:
-        st.sidebar.link_button("Official merch", merch, use_container_width=True)
+        st.sidebar.link_button("Official merch", merch, width="stretch")
     if not patreon and not merch:
         st.sidebar.info(
             "Add **PATREON_URL** and **MERCH_URL** in Streamlit secrets to show support links."
@@ -216,7 +216,7 @@ def main() -> None:
             df = df[df.apply(row_matches, axis=1)]
 
         st.caption("Rows appear after the ingestion pipeline stores media references in Turso.")
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width="stretch", hide_index=True)
 
     with tab_progress:
         c1, c2, c3, c4 = st.columns(4)
@@ -248,14 +248,14 @@ def main() -> None:
         else:
             st.subheader("Episodes by pipeline stage")
             chart_df = stages.set_index("stage")[["count"]].rename(columns={"count": "Episodes"})
-            st.bar_chart(chart_df, use_container_width=True)
+            st.bar_chart(chart_df, width="stretch")
 
         st.subheader("Recent import runs")
         runs = _df_import_runs(client, 30)
         if runs.empty:
             st.info("No import runs recorded yet.")
         else:
-            st.dataframe(runs, use_container_width=True, hide_index=True)
+            st.dataframe(runs, width="stretch", hide_index=True)
 
     with tab_logs:
         sev = st.selectbox("Severity filter", options=["(all)", "ERROR", "WARNING", "INFO"])
@@ -265,7 +265,7 @@ def main() -> None:
         if logs.empty:
             st.info("No log rows yet.")
         else:
-            st.dataframe(logs, use_container_width=True, hide_index=True)
+            st.dataframe(logs, width="stretch", hide_index=True)
 
 
 if __name__ == "__main__":
