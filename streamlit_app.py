@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-import altair as alt
 import libsql_client
 import pandas as pd
 import streamlit as st
@@ -193,13 +192,9 @@ def main() -> None:
         if stages.empty:
             st.info("No processing state yet. Run the GitHub Action or CLI ingest once.")
         else:
-            chart = (
-                alt.Chart(stages)
-                .mark_bar()
-                .encode(x=alt.X("stage:N", title="Stage"), y=alt.Y("count:Q", title="Episodes"))
-                .properties(height=280, title="Episodes by pipeline stage")
-            )
-            st.altair_chart(chart, use_container_width=True)
+            st.subheader("Episodes by pipeline stage")
+            chart_df = stages.set_index("stage")[["count"]].rename(columns={"count": "Episodes"})
+            st.bar_chart(chart_df, use_container_width=True)
 
         st.subheader("Recent import runs")
         runs = _df_import_runs(client, 30)

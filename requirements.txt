@@ -1,5 +1,5 @@
 # Streamlit Cloud: keep this minimal — heavy / conflicting deps go in requirements-ingest.txt
+# (Avoid Altair here: hosted runtimes on Python 3.14+ can break on Altair's TypedDict usage.)
 streamlit>=1.38.0,<2
 libsql-client>=0.3.0,<0.4
 pandas>=2.2.0,<3
-altair>=5.4.0,<6
