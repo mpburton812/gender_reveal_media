@@ -40,6 +40,14 @@ def _ensure_schema(client: libsql_client.ClientSync) -> None:
     apply_schema(client, schema_path=schema_path)
 
 
+def _rows_to_df(rs: libsql_client.ResultSet, *, empty_columns: list[str]) -> pd.DataFrame:
+    cols = list(rs.columns)
+    rows = [dict(zip(cols, tuple(row))) for row in rs.rows]
+    if not rows:
+        return pd.DataFrame(columns=empty_columns)
+    return pd.DataFrame(rows)
+
+
 def _df_media_table(client: libsql_client.ClientSync) -> pd.DataFrame:
     rs = client.execute(
         """
@@ -60,8 +68,22 @@ def _df_media_table(client: libsql_client.ClientSync) -> pd.DataFrame:
         ORDER BY e.id DESC, m.id ASC
         """
     )
-    rows = [dict(zip(rs.columns, tuple(row))) for row in rs.rows]
-    return pd.DataFrame(rows)
+    return _rows_to_df(
+        rs,
+        empty_columns=[
+            "season",
+            "episode_num",
+            "episode_name",
+            "episode_date",
+            "guest",
+            "media_type",
+            "media_sub_category",
+            "media_name",
+            "link_to_media",
+            "context_description",
+            "source_episode_key",
+        ],
+    )
 
 
 def _df_stage_counts(client: libsql_client.ClientSync) -> pd.DataFrame:
@@ -73,8 +95,7 @@ def _df_stage_counts(client: libsql_client.ClientSync) -> pd.DataFrame:
         ORDER BY s.stage
         """
     )
-    rows = [dict(zip(rs.columns, tuple(row))) for row in rs.rows]
-    return pd.DataFrame(rows)
+    return _rows_to_df(rs, empty_columns=["stage", "count"])
 
 
 def _df_import_runs(client: libsql_client.ClientSync, limit: int = 30) -> pd.DataFrame:
@@ -88,8 +109,21 @@ def _df_import_runs(client: libsql_client.ClientSync, limit: int = 30) -> pd.Dat
         """,
         [limit],
     )
-    rows = [dict(zip(rs.columns, tuple(row))) for row in rs.rows]
-    return pd.DataFrame(rows)
+    return _rows_to_df(
+        rs,
+        empty_columns=[
+            "id",
+            "started_at",
+            "finished_at",
+            "trigger",
+            "status",
+            "episodes_discovered",
+            "transcripts_new",
+            "metadata_ok",
+            "media_ok",
+            "errors",
+        ],
+    )
 
 
 def _df_logs(client: libsql_client.ClientSync, limit: int, severity: str | None) -> pd.DataFrame:
@@ -114,8 +148,19 @@ def _df_logs(client: libsql_client.ClientSync, limit: int, severity: str | None)
             """,
             [limit],
         )
-    rows = [dict(zip(rs.columns, tuple(row))) for row in rs.rows]
-    return pd.DataFrame(rows)
+    return _rows_to_df(
+        rs,
+        empty_columns=[
+            "id",
+            "created_at",
+            "severity",
+            "component",
+            "episode_id",
+            "import_run_id",
+            "message",
+            "context_json",
+        ],
+    )
 
 
 def main() -> None:
@@ -175,12 +220,18 @@ def main() -> None:
         stages = _df_stage_counts(client)
 
         def _sum_stage(df: pd.DataFrame, name: str) -> int:
+            if df.empty or "stage" not in df.columns or "count" not in df.columns:
+                return 0
             sub = df[df["stage"] == name]
             if sub.empty:
                 return 0
             return int(sub["count"].sum())
 
-        total_eps = int(stages["count"].sum()) if not stages.empty else 0
+        total_eps = (
+            int(stages["count"].sum())
+            if (not stages.empty and "count" in stages.columns)
+            else 0
+        )
         done = _sum_stage(stages, "media_extracted")
         failed = _sum_stage(stages, "failed")
         missing = _sum_stage(stages, "transcript_missing")
