@@ -18,12 +18,15 @@ def resolve_gemini_model(value: str | None) -> str:
     gemini-2.0-flash, which returns 404 for new API projects.
     """
     default = "gemini-2.5-flash"
-    raw = (value or "").strip()
+    raw = (value or "").strip().strip('"').strip("'")
+    raw = raw.replace("\ufeff", "")
     if not raw:
         return default
-    name = raw.removeprefix("models/").strip()
-    tail = name.split("/")[-1]
-    if tail == "gemini-2.0-flash" or name == "gemini-2.0-flash":
+    name = raw.removeprefix("models/").strip().strip('"').strip("'")
+    tail = name.split("/")[-1].lower()
+    if tail == "gemini-2.0-flash" or tail.startswith("gemini-2.0-flash-"):
+        return default
+    if "gemini-2.0-flash" in name.lower() and "gemini-2.5" not in name.lower():
         return default
     return name
 

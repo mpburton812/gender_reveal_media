@@ -7,7 +7,7 @@ from typing import Any
 
 import google.generativeai as genai
 
-from gender_reveal_media.config import Settings
+from gender_reveal_media.config import Settings, resolve_gemini_model
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,8 @@ def extract_episode_metadata(
     list_label: str,
 ) -> dict[str, Any]:
     _configure(settings)
-    model = genai.GenerativeModel(settings.gemini_model)
+    model_name = resolve_gemini_model(settings.gemini_model)
+    model = genai.GenerativeModel(model_name)
     cap = settings.gemini_max_transcript_chars
     body = transcript if len(transcript) <= cap else transcript[:cap]
     prompt = (
@@ -86,7 +87,8 @@ def extract_episode_metadata(
 
 def extract_media_references(transcript: str, settings: Settings) -> list[dict[str, Any]]:
     _configure(settings)
-    model = genai.GenerativeModel(settings.gemini_model)
+    model_name = resolve_gemini_model(settings.gemini_model)
+    model = genai.GenerativeModel(model_name)
     allowed = ", ".join(sorted(ALLOWED_MEDIA_TYPES))
     chunks = _chunk_transcript(
         transcript,

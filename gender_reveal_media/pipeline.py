@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 import libsql_client
@@ -394,6 +395,18 @@ def run_ingest(settings: Settings, *, trigger: str = "cli") -> dict[str, int]:
         )
         rid_rs = client.execute("SELECT last_insert_rowid() AS id")
         import_run_id = int(rid_rs.rows[0][0])
+        insert_log(
+            client,
+            severity="INFO",
+            component="pipeline",
+            message="Ingest started",
+            import_run_id=import_run_id,
+            context={
+                "gemini_model": settings.gemini_model,
+                "gemini_model_env": os.environ.get("GEMINI_MODEL"),
+                "github_actions": os.environ.get("GITHUB_ACTIONS"),
+            },
+        )
 
         headers = {"User-Agent": settings.user_agent}
         r = requests.get(settings.listen_url, headers=headers, timeout=60)
