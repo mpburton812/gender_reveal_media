@@ -18,13 +18,21 @@ def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
 
 
+def _pandoc_input_format(path: Path) -> str | None:
+    """Pandoc input format flag; avoid '-f auto' (not supported on older pandoc, e.g. Ubuntu apt)."""
+    return {".docx": "docx", ".odt": "odt", ".doc": "doc"}.get(path.suffix.lower())
+
+
 def _pandoc_to_plain(path: Path) -> str | None:
     pandoc = shutil.which("pandoc")
     if not pandoc:
         return None
+    fmt = _pandoc_input_format(path)
+    if not fmt:
+        return None
     try:
         proc = subprocess.run(
-            [pandoc, "-f", "auto", "-t", "plain", str(path)],
+            [pandoc, "-f", fmt, "-t", "plain", str(path)],
             check=False,
             capture_output=True,
             text=True,
@@ -46,6 +54,12 @@ def _extract_docx_python(path: Path) -> str:
         t = (p.text or "").strip()
         if t:
             parts.append(t)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                t = (cell.text or "").strip()
+                if t:
+                    parts.append(t)
     return "\n".join(parts).strip()
 
 
