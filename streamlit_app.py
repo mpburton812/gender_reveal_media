@@ -166,6 +166,9 @@ def _df_logs(client: libsql_client.ClientSync, limit: int, severity: str | None)
 def main() -> None:
     st.set_page_config(page_title="Gender Reveal Media", layout="wide")
     _hydrate_env_from_streamlit_secrets()
+    # Turso over wss often fails on Streamlit Cloud; HTTPS transport works there.
+    # GitHub Actions does not set this and keeps libsql:// → wss (see config.normalize).
+    os.environ.setdefault("TURSO_PREFER_HTTPS", "1")
 
     st.sidebar.markdown("### Support the show!")
     patreon = os.environ.get("PATREON_URL", "").strip()

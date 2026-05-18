@@ -13,14 +13,25 @@ def _env(name: str, default: str | None = None) -> str | None:
 
 def normalize_turso_database_url(url: str) -> str:
     """
-    Turso dashboard URLs often use libsql://, which the client maps to wss://.
-    Some hosts (e.g. Streamlit Cloud) fail WebSocket upgrades; HTTPS works reliably.
-    Set TURSO_USE_WEBSOCKET=1 to keep libsql/wss as provided.
+    Turso dashboard URLs often use libsql:// (Hrana over WebSocket / wss).
+
+    - GitHub Actions and most servers: keep libsql:// so libsql-client uses wss.
+      Forcing https:// can make Turso return JSON the HTTP client does not parse
+      (libsql_client KeyError: 'result').
+
+    - Streamlit Cloud: wss upgrades often fail; set TURSO_PREFER_HTTPS=1 (the
+      Streamlit app does this by default) to rewrite libsql:// → https://.
+
+    Set TURSO_USE_WEBSOCKET=1 to never rewrite (always use libsql/wss as given).
     """
-    flag = (_env("TURSO_USE_WEBSOCKET") or "").strip().lower()
-    if flag in ("1", "true", "yes"):
+    if (_env("TURSO_USE_WEBSOCKET") or "").strip().lower() in ("1", "true", "yes"):
         return url.strip()
     u = url.strip()
+    if (_env("GITHUB_ACTIONS") or "").strip() == "true":
+        return u
+    prefer = (_env("TURSO_PREFER_HTTPS") or "").strip().lower() in ("1", "true", "yes")
+    if not prefer:
+        return u
     if u.startswith("libsql://"):
         return "https://" + u.removeprefix("libsql://")
     if u.startswith("wss://"):
