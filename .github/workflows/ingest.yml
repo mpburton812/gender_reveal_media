@@ -3,7 +3,15 @@ name: ingest
 on:
   schedule:
     - cron: "0 */6 * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      max_episodes:
+        description: >
+          Max episodes to advance this run. Use 0 to process up to INGEST_EPISODES_CAP
+          remaining eligible episodes in one run (one-shot backfill). Scheduled runs use 5.
+        required: false
+        default: "5"
+        type: string
 
 jobs:
   ingest:
@@ -30,7 +38,12 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-          INGEST_MAX_EPISODES: "5"
-          # Ensure ingest uses Hrana (libsql:// → wss), not the HTTP client path.
           TURSO_PREFER_HTTPS: ""
-        run: python -m gender_reveal_media.cli ingest --trigger github_actions
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            export INGEST_MAX_EPISODES="${{ github.event.inputs.max_episodes }}"
+          else
+            export INGEST_MAX_EPISODES="5"
+          fi
+          python -m gender_reveal_media.cli ingest --trigger github_actions

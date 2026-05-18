@@ -90,7 +90,13 @@ def load_settings(*, require_gemini: bool = True) -> Settings:
         raise RuntimeError("GEMINI_API_KEY is not set")
     if not gemini:
         gemini = ""
-    max_eps = int(_env("INGEST_MAX_EPISODES", "5") or "5")
+    max_eps_raw = int(_env("INGEST_MAX_EPISODES", "5") or "5")
+    cap = int(_env("INGEST_EPISODES_CAP", "5000") or "5000")
+    cap = max(1, min(cap, 50_000))
+    if max_eps_raw <= 0:
+        max_eps = cap
+    else:
+        max_eps = max(1, min(max_eps_raw, cap))
     max_chars = int(_env("GEMINI_MAX_TRANSCRIPT_CHARS", "240000") or "240000")
     chunk = int(_env("GEMINI_CHUNK_CHARS", "90000") or "90000")
     overlap = int(_env("GEMINI_CHUNK_OVERLAP", "2000") or "2000")
@@ -99,7 +105,7 @@ def load_settings(*, require_gemini: bool = True) -> Settings:
         turso_auth_token=_env("TURSO_AUTH_TOKEN"),
         gemini_api_key=gemini,
         gemini_model=resolve_gemini_model(_env("GEMINI_MODEL")),
-        ingest_max_episodes=max(1, min(max_eps, 50)),
+        ingest_max_episodes=max_eps,
         gemini_max_transcript_chars=max(10_000, max_chars),
         gemini_chunk_chars=max(5000, chunk),
         gemini_chunk_overlap=max(0, min(overlap, chunk // 2)),
