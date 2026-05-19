@@ -178,18 +178,6 @@ def main() -> None:
 
     render_site_header(page_title="Media catalog")
 
-    st.sidebar.markdown("### Support the show!")
-    patreon = os.environ.get("PATREON_URL", "").strip()
-    merch = os.environ.get("MERCH_URL", "").strip()
-    if patreon:
-        st.sidebar.link_button("Patreon", patreon, width="stretch")
-    if merch:
-        st.sidebar.link_button("Official merch", merch, width="stretch")
-    if not patreon and not merch:
-        st.sidebar.info(
-            "Add **PATREON_URL** and **MERCH_URL** in Streamlit secrets to show support links."
-        )
-
     try:
         settings = load_settings(require_gemini=False)
     except Exception as exc:  # noqa: BLE001
@@ -207,7 +195,12 @@ def main() -> None:
         st.error(f"Database connection or schema error: {exc}")
         st.stop()
 
-    search = st.sidebar.text_input("Search all fields", value="", help="Case-insensitive filter across the table.")
+    search = st.sidebar.text_input(
+        "Search all fields",
+        value="",
+        help="Case-insensitive filter across the table.",
+        placeholder="Type to filter the catalog…",
+    )
 
     tab_catalog, tab_progress, tab_logs = st.tabs(["Media catalog", "Import progress", "Logs"])
 

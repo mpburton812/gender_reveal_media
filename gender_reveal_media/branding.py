@@ -36,7 +36,6 @@ def render_site_header(*, page_title: str = "Media catalog") -> None:
     st.markdown(
         f"""
         <div class="gr-site-header">
-          <nav class="gr-nav" aria-label="Gender Reveal site">{nav}</nav>
           <a class="gr-logo" href="{_SITE_URL}" target="_blank" rel="noopener noreferrer">
             <span>Gender</span><span>Reveal</span>
           </a>
@@ -44,6 +43,7 @@ def render_site_header(*, page_title: str = "Media catalog") -> None:
             Media referenced on the Gender Reveal podcast — search, browse, and follow links
             to books, film, music, and more.
           </p>
+          <nav class="gr-nav" aria-label="Gender Reveal site">{nav}</nav>
         </div>
         <div class="gr-hero" style="background-image: url('{_HERO_IMAGE}');">
           <div class="gr-hero-inner">
