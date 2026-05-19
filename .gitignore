@@ -20,3 +20,7 @@ Thumbs.db
 
 # Local SQLite (optional dev)
 *.db
+
+# CLI / ingest logs
+*.log
+populate-links-refresh.log

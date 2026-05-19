@@ -12,6 +12,14 @@ on:
         required: false
         default: "5"
         type: string
+      populate_links:
+        description: >
+          After Gemini media extraction, fill link_to_media via catalog APIs
+          (Open Library, MusicBrainz, OpenAlex, Internet Archive; TMDB for movies/TV).
+          Optional GOOGLE_CSE_* secrets add fallback for games, graphic novels, etc.
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   ingest:
@@ -19,9 +27,9 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -38,6 +46,9 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          GOOGLE_CSE_API_KEY: ${{ secrets.GOOGLE_CSE_API_KEY }}
+          GOOGLE_CSE_CX: ${{ secrets.GOOGLE_CSE_CX }}
           TURSO_PREFER_HTTPS: ""
         run: |
           set -euo pipefail
@@ -46,4 +57,8 @@ jobs:
           else
             export INGEST_MAX_EPISODES="5"
           fi
-          python -m gender_reveal_media.cli ingest --trigger github_actions
+          EXTRA_ARGS=()
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.populate_links }}" = "true" ]; then
+            EXTRA_ARGS+=(--populate-links)
+          fi
+          python -m gender_reveal_media.cli ingest --trigger github_actions "${EXTRA_ARGS[@]}"

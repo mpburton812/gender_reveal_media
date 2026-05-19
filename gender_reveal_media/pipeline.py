@@ -12,6 +12,8 @@ from gender_reveal_media.config import Settings
 from gender_reveal_media.db import apply_schema, insert_log, touch_episode_updated
 from gender_reveal_media.discovery import DiscoveredEpisode, parse_listen_page
 from gender_reveal_media import gemini_extract
+from gender_reveal_media.itunes import populate_episodes_from_itunes
+from gender_reveal_media.media_link_search import populate_media_links
 from gender_reveal_media.transcript_extraction import download_transcript_text
 
 logger = logging.getLogger(__name__)
@@ -138,7 +140,7 @@ def upsert_discovery(
 
 
 class ProcessResult:
-    __slots__ = ("outcome", "downloaded", "metadata", "media_completed")
+    __slots__ = ("outcome", "downloaded", "metadata", "media_completed", "media_links_updated")
 
     def __init__(
         self,
@@ -147,11 +149,13 @@ class ProcessResult:
         downloaded: bool = False,
         metadata: bool = False,
         media_completed: bool = False,
+        media_links_updated: int = 0,
     ) -> None:
         self.outcome = outcome
         self.downloaded = downloaded
         self.metadata = metadata
         self.media_completed = media_completed
+        self.media_links_updated = media_links_updated
 
 
 def process_episode(
@@ -255,11 +259,25 @@ def process_episode(
                 )
                 return ProcessResult("failed")
 
-            season = meta.get("season")
-            epnum = meta.get("episode_number")
+            base = row2 if row2 else row
+            season = _safe_int(meta.get("season")) or base.get("season") or base.get("scraped_season")
+            epnum = _safe_int(meta.get("episode_number")) or base.get("episode_number")
             title = meta.get("episode_title")
             epdate = meta.get("episode_date")
             guest = meta.get("guest")
+            episode_name = (
+                str(title).strip()
+                if title is not None and str(title).strip()
+                else base.get("episode_name")
+            )
+            episode_date = (
+                str(epdate).strip()
+                if epdate is not None and str(epdate).strip()
+                else base.get("episode_date")
+            )
+            guest_val = (
+                str(guest).strip() if guest is not None and str(guest).strip() else base.get("guest")
+            )
             client.execute(
                 """
                 UPDATE episodes
@@ -268,11 +286,11 @@ def process_episode(
                 WHERE id = ?
                 """,
                 [
-                    _safe_int(season),
-                    _safe_int(epnum),
-                    str(title) if title is not None else None,
-                    str(epdate) if epdate is not None else None,
-                    str(guest) if guest is not None else None,
+                    season,
+                    epnum,
+                    episode_name,
+                    episode_date,
+                    guest_val,
                     episode_id,
                 ],
             )
@@ -339,11 +357,21 @@ def process_episode(
                 import_run_id=import_run_id,
                 context={"count": len(refs)},
             )
+            link_counts = {"updated": 0}
+            if settings.populate_media_links:
+                link_counts = populate_media_links(
+                    client,
+                    settings,
+                    episode_id=episode_id,
+                    import_run_id=import_run_id,
+                    limit=settings.media_link_search_limit,
+                )
             return ProcessResult(
                 "completed",
                 downloaded=downloaded_flag,
                 metadata=metadata_flag,
                 media_completed=True,
+                media_links_updated=int(link_counts.get("updated", 0)),
             )
 
         return ProcessResult("progressed", downloaded=downloaded_flag, metadata=metadata_flag)
@@ -376,6 +404,34 @@ def _eligible_episode_ids(client: libsql_client.ClientSync, limit: int) -> list[
         [limit],
     )
     return [int(r[0]) for r in rs.rows]
+
+
+def run_populate_media_links(
+    settings: Settings,
+    *,
+    refresh: bool = False,
+    limit: int | None = None,
+) -> dict[str, int]:
+    client = libsql_client.create_client_sync(
+        settings.turso_database_url,
+        auth_token=settings.turso_auth_token,
+    )
+    try:
+        try:
+            client.execute("PRAGMA foreign_keys = ON;")
+        except LibsqlError:
+            pass
+        apply_schema(client)
+        effective_limit = limit if limit is not None else settings.media_link_search_limit
+        return populate_media_links(
+            client,
+            settings,
+            refresh=refresh,
+            limit=effective_limit,
+            import_run_id=None,
+        )
+    finally:
+        client.close()
 
 
 def run_ingest(settings: Settings, *, trigger: str = "cli") -> dict[str, int]:
@@ -413,12 +469,17 @@ def run_ingest(settings: Settings, *, trigger: str = "cli") -> dict[str, int]:
         r.raise_for_status()
         items = parse_listen_page(r.text, settings.listen_url)
         discovered = upsert_discovery(client, items, import_run_id)
+        itunes_populated = populate_episodes_from_itunes(
+            client, settings, import_run_id=import_run_id
+        )
 
         counts = {
             "episodes_discovered": discovered,
+            "itunes_populated": itunes_populated,
             "transcripts_new": 0,
             "metadata_ok": 0,
             "media_ok": 0,
+            "media_links_updated": 0,
             "errors": 0,
         }
         for eid in _eligible_episode_ids(client, settings.ingest_max_episodes):
@@ -431,6 +492,8 @@ def run_ingest(settings: Settings, *, trigger: str = "cli") -> dict[str, int]:
                 counts["metadata_ok"] += 1
             if res.media_completed:
                 counts["media_ok"] += 1
+            if res.media_links_updated:
+                counts["media_links_updated"] += res.media_links_updated
 
         client.execute(
             """

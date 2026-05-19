@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 from libsql_client import LibsqlError
 
+from gender_reveal_media.branding import inject_brand_styles, render_site_footer, render_site_header
 from gender_reveal_media.config import load_settings
 from gender_reveal_media.db import apply_schema
 
@@ -164,11 +165,18 @@ def _df_logs(client: libsql_client.ClientSync, limit: int, severity: str | None)
 
 
 def main() -> None:
-    st.set_page_config(page_title="Gender Reveal Media", layout="wide")
+    st.set_page_config(
+        page_title="Gender Reveal — Media catalog",
+        page_icon="https://www.genderpodcast.com/favicon.ico",
+        layout="wide",
+    )
+    inject_brand_styles()
     _hydrate_env_from_streamlit_secrets()
     # Turso over wss often fails on Streamlit Cloud; HTTPS transport works there.
     # GitHub Actions does not set this and keeps libsql:// → wss (see config.normalize).
     os.environ.setdefault("TURSO_PREFER_HTTPS", "1")
+
+    render_site_header(page_title="Media catalog")
 
     st.sidebar.markdown("### Support the show!")
     patreon = os.environ.get("PATREON_URL", "").strip()
@@ -266,6 +274,8 @@ def main() -> None:
             st.info("No log rows yet.")
         else:
             st.dataframe(logs, width="stretch", hide_index=True)
+
+    render_site_footer()
 
 
 if __name__ == "__main__":

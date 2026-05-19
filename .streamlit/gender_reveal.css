@@ -1,0 +1,248 @@
+/* Gender Reveal — visual alignment with https://www.genderpodcast.com/ */
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Source+Sans+3:wght@400;600&display=swap");
+
+:root {
+  --gr-bg: #f9f9f9;
+  --gr-surface: #ffffff;
+  --gr-text: #4a4a4a;
+  --gr-text-muted: #7a7a7a;
+  --gr-accent: #f9d71c;
+  --gr-link: #4c8c94;
+  --gr-link-hover: #3a7078;
+  --gr-border: #e8e8e8;
+  --gr-hero-image: url("https://images.squarespace-cdn.com/content/v1/5b8edb475cfd79695f73e271/1606256644877-WFYKIU0O7GC6RAIEYZN2/Full_Size_Gender_Reveal_new_color_cover_photo.jpg");
+  --gr-font-heading: "Montserrat", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --gr-font-body: "Source Sans 3", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* App shell */
+[data-testid="stAppViewContainer"] {
+  background-color: var(--gr-bg);
+  background-image: linear-gradient(180deg, #ffffff 0%, var(--gr-bg) 280px);
+}
+
+[data-testid="stHeader"] {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid var(--gr-border);
+}
+
+.block-container {
+  padding-top: 1.5rem;
+  max-width: 1200px;
+}
+
+/* Brand header */
+.gr-site-header {
+  text-align: center;
+  padding: 0.5rem 0 1.25rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--gr-border);
+  background: var(--gr-surface);
+}
+
+.gr-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem 1.25rem;
+  margin-bottom: 1rem;
+  font-family: var(--gr-font-heading);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.gr-nav a {
+  color: var(--gr-text);
+  text-decoration: none;
+}
+
+.gr-nav a:hover {
+  color: var(--gr-link);
+}
+
+.gr-logo {
+  display: inline-block;
+  font-family: var(--gr-font-heading);
+  font-weight: 800;
+  font-size: clamp(1.75rem, 4vw, 2.35rem);
+  line-height: 1.05;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gr-accent);
+  text-decoration: none;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.gr-logo span {
+  display: block;
+}
+
+.gr-tagline {
+  font-family: var(--gr-font-body);
+  color: var(--gr-text-muted);
+  font-size: 1rem;
+  margin: 0.75rem auto 0;
+  max-width: 42rem;
+  line-height: 1.55;
+}
+
+/* Hero band (homepage-style cover art) */
+.gr-hero {
+  position: relative;
+  margin: 0 0 1.5rem;
+  min-height: 200px;
+  border-radius: 4px;
+  overflow: hidden;
+  background-image: var(--gr-hero-image);
+  background-size: cover;
+  background-position: center 40%;
+}
+
+.gr-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.15) 0%,
+    rgba(0, 0, 0, 0.45) 100%
+  );
+}
+
+.gr-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+.gr-hero h1 {
+  font-family: var(--gr-font-heading);
+  font-weight: 700;
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+[data-testid="stMarkdownContainer"] h1,
+[data-testid="stMarkdownContainer"] h2,
+[data-testid="stMarkdownContainer"] h3 {
+  font-family: var(--gr-font-heading) !important;
+  color: var(--gr-text) !important;
+  font-weight: 700 !important;
+}
+
+p,
+li,
+label,
+[data-testid="stMarkdownContainer"] p {
+  font-family: var(--gr-font-body);
+  color: var(--gr-text-muted);
+}
+
+a {
+  color: var(--gr-link);
+}
+
+a:hover {
+  color: var(--gr-link-hover);
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+  background-color: var(--gr-surface);
+  border-right: 1px solid var(--gr-border);
+}
+
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
+  color: var(--gr-text) !important;
+  font-size: 0.95rem !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--gr-border);
+}
+
+.stTabs [data-baseweb="tab"] {
+  font-family: var(--gr-font-heading);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  color: var(--gr-text-muted);
+}
+
+.stTabs [aria-selected="true"] {
+  color: var(--gr-text) !important;
+  border-bottom-color: var(--gr-accent) !important;
+}
+
+/* Metrics */
+[data-testid="stMetric"] {
+  background: var(--gr-surface);
+  border: 1px solid var(--gr-border);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+}
+
+[data-testid="stMetricLabel"] {
+  font-family: var(--gr-font-heading);
+  font-size: 0.72rem !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gr-text-muted) !important;
+}
+
+[data-testid="stMetricValue"] {
+  font-family: var(--gr-font-heading);
+  color: var(--gr-text) !important;
+}
+
+/* Dataframes */
+[data-testid="stDataFrame"] {
+  border: 1px solid var(--gr-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Buttons */
+.stLinkButton a,
+.stButton button {
+  font-family: var(--gr-font-heading) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  font-size: 0.75rem !important;
+}
+
+/* Footer note */
+.gr-footer {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--gr-border);
+  font-family: var(--gr-font-body);
+  font-size: 0.85rem;
+  color: var(--gr-text-muted);
+  text-align: center;
+}
+
+.gr-footer a {
+  color: var(--gr-link);
+  font-weight: 600;
+}

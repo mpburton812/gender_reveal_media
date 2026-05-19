@@ -5,7 +5,8 @@ import logging
 import re
 from typing import Any
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from gender_reveal_media.config import Settings, resolve_gemini_model
 
@@ -25,9 +26,27 @@ ALLOWED_MEDIA_TYPES: frozenset[str] = frozenset(
     }
 )
 
+_client: genai.Client | None = None
 
-def _configure(settings: Settings) -> None:
-    genai.configure(api_key=settings.gemini_api_key)
+
+def _get_client(settings: Settings) -> genai.Client:
+    global _client
+    if _client is None:
+        _client = genai.Client(api_key=settings.gemini_api_key)
+    return _client
+
+
+def _generate_json(settings: Settings, model_name: str, prompt: str) -> str:
+    client = _get_client(settings)
+    response = client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            temperature=0.1,
+            response_mime_type="application/json",
+        ),
+    )
+    return (response.text or "").strip()
 
 
 def _chunk_transcript(text: str, chunk_size: int, overlap: int) -> list[str]:
@@ -56,9 +75,7 @@ def extract_episode_metadata(
     *,
     list_label: str,
 ) -> dict[str, Any]:
-    _configure(settings)
     model_name = resolve_gemini_model(settings.gemini_model)
-    model = genai.GenerativeModel(model_name)
     cap = settings.gemini_max_transcript_chars
     body = transcript if len(transcript) <= cap else transcript[:cap]
     prompt = (
@@ -71,14 +88,7 @@ def extract_episode_metadata(
         "Transcript follows:\n\n"
         f"{body}"
     )
-    resp = model.generate_content(
-        prompt,
-        generation_config=genai.GenerationConfig(
-            temperature=0.1,
-            response_mime_type="application/json",
-        ),
-    )
-    raw = (resp.text or "").strip()
+    raw = _generate_json(settings, model_name, prompt)
     data = json.loads(raw)
     if not isinstance(data, dict):
         raise ValueError("metadata JSON must be an object")
@@ -86,9 +96,7 @@ def extract_episode_metadata(
 
 
 def extract_media_references(transcript: str, settings: Settings) -> list[dict[str, Any]]:
-    _configure(settings)
     model_name = resolve_gemini_model(settings.gemini_model)
-    model = genai.GenerativeModel(model_name)
     allowed = ", ".join(sorted(ALLOWED_MEDIA_TYPES))
     chunks = _chunk_transcript(
         transcript,
@@ -111,14 +119,7 @@ def extract_media_references(transcript: str, settings: Settings) -> list[dict[s
             f"Chunk index: {idx + 1} / {len(chunks)}.\n\n"
             f"Transcript chunk:\n\n{chunk}"
         )
-        resp = model.generate_content(
-            prompt,
-            generation_config=genai.GenerationConfig(
-                temperature=0.1,
-                response_mime_type="application/json",
-            ),
-        )
-        raw = (resp.text or "").strip()
+        raw = _generate_json(settings, model_name, prompt)
         payload = json.loads(raw)
         refs = payload.get("references") if isinstance(payload, dict) else None
         if not isinstance(refs, list):
