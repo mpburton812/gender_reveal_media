@@ -33,10 +33,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install pandoc
+      - name: Install document converters
         run: |
           sudo apt-get update
-          sudo apt-get install -y pandoc
+          sudo apt-get install -y pandoc antiword libreoffice-writer-nogui
 
       - name: Install dependencies
         run: pip install -r requirements-ingest.txt
